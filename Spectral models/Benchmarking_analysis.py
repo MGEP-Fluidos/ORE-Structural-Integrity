@@ -15,7 +15,7 @@ import scipy.signal as sig
 import Spectral_methods as fsm
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
-from Tension_signals.Jonswap import jonswap_elevation
+from synthetic_data.Jonswap import jonswap_elevation
 
 
 ###############################################################################
@@ -98,8 +98,8 @@ damage_matrices = {}
 for method in ['RFC', 'NB', 'WL', 'OC', 'TB', 'A75', 'DK', 'ZB', 'PK', 'JP', 'JM', 'DNB', 'SO', 'FC', 'MFC', 'LWB', 'LOW', 'SM', 'LB', 'HM', 'BM']:
     damage_matrices[method] = np.zeros((realisations, ss))
 
-LF = np.load('Tension_signals\\LF.npy')
-LF_amplitude = np.load('Tension_signals\\LF_amplitude.npy')
+LF = np.load('synthetic_data\\LF.npy')
+LF_amplitude = np.load('synthetic_data\\LF_amplitude.npy')
 
 # Define time vector
 t = np.linspace(0, 7500, 15000)
