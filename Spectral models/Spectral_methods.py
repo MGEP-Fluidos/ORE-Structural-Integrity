@@ -2,8 +2,6 @@
 """
 Module Name: Spectral methods
 Description: This module defines the spectral models for fatigue assessment.
-Author: Eguzkiñe Martinez Puente
-Created on: 2023-03-07
 """
 
 import numpy as np
@@ -72,7 +70,7 @@ def P_pdf(Mo_1, Mo_2):
 
 
 ###############################################################################
-'                       Frequency domain methods                              '
+'                               Spectral methods                              '
 ###############################################################################
 
 
@@ -565,56 +563,3 @@ def BandsMethod(k, C, tension, fs, nbands, cor = False):
     # d = (K * (2*alfa)**(1/beta) * f_ref / ((np.sqrt(m0))**(1/beta)))
     d = (f_ref * K * (2*alfa)**(1/beta)) / ((2*np.sqrt(1*m0))**(1/beta))
     return d
-
-###############################################################################
-# Mean stress correction
-
-def Petrucci_Zuccarello(k, C, Mo, s, Su):
-    vp = vp = (1 / (2 * np.pi)) * np.sqrt(Mo[4] / Mo[2])
-    
-    g = max(s) / Su
-    
-    alfa1 = Mo[1] / np.sqrt(Mo[0] * Mo[2])
-    alfa2 = Mo[2] / np.sqrt(Mo[0] * Mo[4])
-    
-    psi_1 = -1.944 - 9.381*alfa2 + 18.349*alfa1 + 15.261*alfa1*alfa2 - 1.483*alfa2**2 - 15.402*alfa1**2
-    psi_2 = 8.229 - 26.51*alfa2 + 21.522*alfa1 + 27.748*alfa1*alfa2 + 4.338*alfa2**2 - 20.026*alfa1**2
-    psi_3 = -0.946 - 8.025*alfa2 + 15.692*alfa1 + 11.867*alfa1*alfa2 + 0.382*alfa2**2 - 13.198*alfa1**2
-    psi_4 = 8.78 - 26.058*alfa2 + 21.628*alfa1 + 26.487*alfa1*alfa2 + 5.379*alfa2**2 - 19.967*alfa1**2
-    
-    psi = (psi_2 - psi_1) / 6 * (k-3) + psi_1 + (2/9*(psi_4-psi_3-psi_2+psi_1)*(k-3)+4/3*(psi_3-psi_1))*(g-0.15)
-    
-    d = vp / C * np.sqrt(Mo[0]*k) * np.exp(psi)
-    return d
-
-def Kihl_Sarkani(k, C, Sult, tension, ZUCF):
-    k = -k
-    mean_value = np.mean(tension)
-    zero_mean_tension = tension - mean_value
-    S_range = np.max(zero_mean_tension) - np.min(zero_mean_tension)
-    Sm = S_range / 2
-    squared_tension = zero_mean_tension**2
-    Sx = np.sqrt(np.mean(squared_tension))
-    Ncal = (1 - Sm / Sult)**(-k) * \
-        ((2**(k / 2) * Sx**k * C) / (gamma_func(1 - k / 2)))
-    d = ZUCF / Ncal
-    return Ncal
-
-
-def Nieslony_Bohm():
-
-    pass
-
-
-def winterstein(T, m):
-    '''
-    Function that returns the Winterstein fatigue damage correction factor
-    [Nonlinear vibration models for extremes and fatigue / doi =
-    {10.1061/(ASCE)0733-9399(1988)114:10(1772)}]
-    '''
-    To = (T - np.mean(T)) / np.std(T)
-    # alfa_3 = np.mean(To**3)
-    alfa_4 = np.mean(To**4)
-    h4 = (alfa_4 - 3) / 24
-    g = 1 + m * (m - 1) * h4
-    return g
