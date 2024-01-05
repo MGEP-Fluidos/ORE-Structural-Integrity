@@ -1,22 +1,21 @@
 # -*- coding: utf-8 -*-
 """
 Module Name: Fatigue damage comparison
-Description: This module calculates the fatigue damage of a given tension result
-dataset and returns the fatigue damage calculated with different TD and Spectral
-methods. 
-Created on: 2023-03-07
+Description: This module calculates the fatigue damage through different Spectral
+methods and compares the results with RFC technique in TD.
 """
 
 import time
+import rainflow
 import numpy as np
 import pandas as pd
 import seaborn as sns
 from tqdm import tqdm
 import scipy.signal as sig
+import Spectral_methods as fsm
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
-import rainflow
-import Spectral_methods as fsm
+from Tension_signals.Jonswap import jonswap_elevation
 
 
 ###############################################################################
@@ -24,7 +23,7 @@ import Spectral_methods as fsm
 
 def para_DNV(component):
     '''
-    Function that gives the ad, m and gamma parameters according to DNV rule
+    Function that gives the ad, m and gamma parameters according to DNV rule.
     for the selected chain type depending on the nominal diameter
     '''
     if component == "stud chain":
@@ -82,8 +81,6 @@ else:
 ###############################################################################
 '                            Analysis characteristics                         '
 
-
-Generate_signals = 0 # int(input('Do you want to generate new synthetic signals? (y=1 / n=0):'))
 ss = 70 # Sea State quantity
 realisations = 50 # Number of realisations per ss
 prb = 1 # Set all sea state occurrence probability as 1
@@ -101,6 +98,27 @@ damage_matrices = {}
 for method in ['RFC', 'NB', 'WL', 'OC', 'TB', 'A75', 'DK', 'ZB', 'PK', 'JP', 'JM', 'DNB', 'SO', 'FC', 'MFC', 'LWB', 'LOW', 'SM', 'LB', 'HM', 'BM']:
     damage_matrices[method] = np.zeros((realisations, ss))
 
+LF = np.load('Tension_signals\\LF.npy')
+LF_amplitude = np.load('Tension_signals\\LF_amplitude.npy')
+
+# Define time vector
+t = np.linspace(0, 7500, 15000)
+dt = t[1] - t[0]
+
+# Define wave scatter diagram
+points = int(np.sqrt(ss))
+Tp_sd = np.linspace(4,18, points)
+Hs_sd = np.linspace(0.1, 14, points)
+sea_state = []
+
+for hs in Hs_sd:
+    for tp in Tp_sd:
+        sea_state.append([hs, tp])
+        
+if len(sea_state) < ss:
+    hs2 = np.linspace((sea_state[points][0]-sea_state[0][0])/2, 14 - (sea_state[points][0]-sea_state[0][0])/2, ss - len(sea_state))
+    for z in hs2:
+        sea_state.append([z, 11])
 
 ###############################################################################
 '                               Damage estimation                             '
@@ -110,25 +128,22 @@ for i in tqdm(range(ss), desc="Processing", unit="iteration"):
     
     for j in range(realisations):
     
-        # Read the tension results
-        with open(f'Simulated_SS\\SS{i+1}-{j+1}.txt') as f:
-            lines = f.readlines()[1::]
+        # Define sea state characteristics
+        Hs = sea_state[i][0]
+        Tp = sea_state[i][1]
     
-        list_columns=[]
-        for line in lines:
-            list_columns.append(line.strip().split('\t')) # Columns are separated by tab
+        # Generate wave frequency time series
+        tension_wave = jonswap_elevation(t, Hs, Tp, dt) * 3.5e3
+        
+        # Generate low frequency time series
+        freq_low = LF[j,i]  
+        Tp_LF = 1/freq_low
+        Hs_LF = LF_amplitude[j,i]
+        Tmean = 1.7e5
+        tension_low = jonswap_elevation(t, Hs_LF, Tp_LF, dt) + Tmean
     
-        tension = []
-        tension_wave = []
-        tension_low = []
-        t = []
-    
-        for column in list_columns:
-            # Adding cable tensions to the list    
-            tension.append(float(column[1]))
-            tension_low.append(float(column[2]))
-            tension_wave.append(float(column[3]))
-            t.append(float(column[0]))
+        # Generate the total time series
+        tension = tension_wave + tension_low
         
         # Transform the tension into stress
         tension = np.array(tension) / Area
