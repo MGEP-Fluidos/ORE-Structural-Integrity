@@ -1,8 +1,6 @@
 """
-Module Name: 
-Description: 
-Author: Eguzkiñe Martinez Puente
-Created on: 13-05-2024
+Module Name: Lifetime synthetic_moreSmvalues.py
+Author: Eguzkiñe Martinez Puente emartinezp@mondragon.edu
 """
 
 import rainflow
@@ -17,12 +15,8 @@ from common_functions import *
 
 import sys
 from pathlib import Path
-
-
 project_path = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_path))
-
-# Now you can import from synthetic_data
 from synthetic_data.Jonswap import jonswap_elevation
 
 
@@ -32,18 +26,17 @@ from synthetic_data.Jonswap import jonswap_elevation
  
 
 def RFC_damage(tension, t, k, C, Sm_correction=None, Su=None, Sy=None, Sf=None, alphak=1, Sm=None):
-    # Extract rainflow cycles and convert to NumPy arrays for efficiency
+    # Extract rainflow cycles
     cycles = np.array(list(rainflow.extract_cycles(tension)))
     amplitude = cycles[:, 0] / 2
     Smean = cycles[:, 1]
     counts = cycles[:, 2]
 
-    # Precompute constants
     time_factor = 1 / t[-1] * 3600 * 24 * 365.25
     if Sm is None:
         Sm = np.mean(tension)
     
-    # Mean stress correction functions as a lookup dictionary
+    # Mean stress correction
     correction_methods = {
         None: lambda Sa, Sm: Sa,
         'SWT': lambda Sa, Sm: Sa * Smith_Watson_Topper(Sa, Sm + Sa),
@@ -54,7 +47,6 @@ def RFC_damage(tension, t, k, C, Sm_correction=None, Su=None, Sy=None, Sf=None, 
         'Morrow': lambda Sa, Sm: Sa * Morrow(Sm, Sf),
     }
     
-    # Apply the selected mean stress correction
     Sar = np.array([correction_methods[Sm_correction](Sa, Sm) for Sa in amplitude])
 
     # Calculate number of cycles to failure (N) and damage
@@ -241,7 +233,7 @@ for Sm_p in MBL_percentage:
     ##################################### TD ######################################
             
         # Calculate rainflow damage
-            # According to DNV
+            
             D_dnv, n_ss, s_eq                   = RFC_damage(tension, t, k, C, Sm=Sm) 
             damage_matrices['DNV'][j,i]         = D_dnv * prb
             S_matrices['DNV'][j,i]              = s_eq
@@ -272,7 +264,7 @@ for Sm_p in MBL_percentage:
             S_matrices['KWOFIE'][j,i]           = s_eq
          
             
-        # Calculate mean damages and append to corresponding lists
+        # Calculate mean damages
         for key, value in damage_data.items():
             method_list                                     = damage_matrices[f'{key}'][:,i]
             damage_data[f'{key}'][index[i][1],index[i][0]]  = np.mean(method_list)
@@ -297,7 +289,7 @@ for Sm_p in MBL_percentage:
         D_KWOFIE[Sm_p].append(damage_data['KWOFIE'][index[i][1],index[i][0]])
         S_RF_KWOFIE[Sm_p].append(S_data['KWOFIE'][index[i][1],index[i][0]])
         
-        # Copy values from the original dictionary to the new one and normalize
+        # Normalised damage
         for key in damage_data.keys():
             if key != 'DNV':
                 if Sm_p == 0.1:
@@ -452,11 +444,9 @@ plt.legend()
 plt.show()
 
 
-# Data for plotting (example based on structure of your script)
 MBL_percentage = [10, 12.5, 15, 17.5, 20, 22.5, 25, 27.5, 30]  # Mean load percentages
 methods = ['GOODMAN', 'SWT', 'SODERBERG', 'GERBER', 'MORROW', 'KWOFIE']
 
-# Extract normalized lifetime values
 normalized_lifetimes = {method: [] for method in methods}
 for method in methods:
     for mbl in MBL_percentage:
@@ -484,10 +474,9 @@ method_markers = {
     'KWOFIE': 'x'
 }
 
-# Create the plot
+
 fig, ax = plt.subplots(figsize=(8, 5))
 
-# Add green and red zones
 ax.axvspan(10, 23.7, facecolor='#CCFFCC', alpha=0.5, label="Conservative zone")
 ax.axvspan(23.7, 30, facecolor='#FFCCCC', alpha=0.5, label="Risk zone")
 
@@ -502,28 +491,18 @@ for method in methods:
         linestyle=':'
     )
 
-# Add vertical dashed line to separate zones
 ax.axvline(x=20, color='black', linestyle='--', linewidth=1)
-
-# Add a horizontal line at 100
 ax.axhline(y=100, color='gray', linestyle='-', linewidth=1)
-
-# Labels and title
 ax.set_xlabel('Mean load [%MBL]', fontsize=12)
 ax.set_ylabel('Normalised lifetime [%]', fontsize=12)
-
-# Add legend
 ax.legend(loc='upper right')
 
-# Adjust limits
 ax.set_xlim(10, 30)
 ax.set_ylim(50, 1500)
 ax.set_yscale('log')
 
-# Set specific tick positions and labels for the y-axis
 ax.set_yticks([50, 500])
 ax.set_yticklabels(['50', '500'])
 
-# Show the plot
 plt.tight_layout()
 plt.show()
