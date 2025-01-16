@@ -13,6 +13,15 @@ import scipy.signal as sig
 import Spectral_methods as fsm
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
+
+import sys
+from pathlib import Path
+
+
+project_path = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(project_path))
+
+# Now you can import from synthetic_data
 from synthetic_data.Jonswap import jonswap_elevation
 
 
@@ -97,8 +106,10 @@ damage_matrices = {}
 for method in list(damage_data.keys()):
     damage_matrices[method] = np.zeros((realisations, ss))
 
-LF = np.load('synthetic_data\\LF.npy')
-LF_amplitude = np.load('synthetic_data\\LF_amplitude.npy')
+path = '..\\synthetic_data'
+
+LF           = np.load(f'{path}\\LF.npy')
+LF_amplitude = np.load(f'{path}\\LF_amplitude.npy')
 
 # Define time vector
 t = np.linspace(0, 7500, 15000)
