@@ -16,12 +16,8 @@ import matplotlib.ticker as mtick
 
 import sys
 from pathlib import Path
-
-
 project_path = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_path))
-
-# Now you can import from synthetic_data
 from synthetic_data.Jonswap import jonswap_elevation
 
 
