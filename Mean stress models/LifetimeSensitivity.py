@@ -1,10 +1,7 @@
 """
-Module Name: 
-Description: 
-Author: Eguzkiñe Martinez Puente
-Created on: 13-05-2024
+Module Name: LifetimeSensitivity.py
+Author: Eguzkiñe Martinez Puente emartinezp@mondragon.edu
 """
-
 import rainflow
 import numpy as np
 import pandas as pd
@@ -15,12 +12,8 @@ from common_functions import *
 
 import sys
 from pathlib import Path
-
-
 project_path = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_path))
-
-# Now you can import from synthetic_data
 from synthetic_data.Jonswap import jonswap_elevation
 
 
@@ -29,18 +22,17 @@ from synthetic_data.Jonswap import jonswap_elevation
  
 
 def RFC_damage(tension, t, k, C, Sm_correction=None, Su=None, Sy=None, Sf=None, alphak=1, Sm=None):
-    # Extract rainflow cycles and convert to NumPy arrays for efficiency
+    # Extract rainflow cycles
     cycles = np.array(list(rainflow.extract_cycles(tension)))
     amplitude = cycles[:, 0] / 2
     Smean = cycles[:, 1]
     counts = cycles[:, 2]
 
-    # Precompute constants
     time_factor = 1 / t[-1] * 3600 * 24 * 365.25
     if Sm is None:
         Sm = np.mean(tension)
     
-    # Mean stress correction functions as a lookup dictionary
+    # Mean stress correction
     correction_methods = {
         None: lambda Sa, Sm: Sa,
         'SWT': lambda Sa, Sm: Sa * Smith_Watson_Topper(Sa, Sm + Sa),
@@ -51,7 +43,6 @@ def RFC_damage(tension, t, k, C, Sm_correction=None, Su=None, Sy=None, Sf=None, 
         'Morrow': lambda Sa, Sm: Sa * Morrow(Sm, Sf),
     }
     
-    # Apply the selected mean stress correction
     Sar = np.array([correction_methods[Sm_correction](Sa, Sm) for Sa in amplitude])
 
     # Calculate number of cycles to failure (N) and damage
@@ -181,7 +172,7 @@ for Sm_p in MBL_percentage:
                         'SODERBERG': np.zeros((8,8)), 'MORROW': np.zeros((8,8)), 'KWOFIE': np.zeros((8,8))}
     S_data = {'DNV': np.zeros((8,8)),'SWT': np.zeros((8,8)),'GOODMAN': np.zeros((8,8)), 'GERBER': np.zeros((8,8)),
                         'SODERBERG': np.zeros((8,8)), 'MORROW': np.zeros((8,8)), 'KWOFIE': np.zeros((8,8))}
-    # Initialize dictionaries to store matrices for each method
+
     damage_matrices = {}
     S_matrices = {}
     N_matrix = np.zeros((realisations, ss))
@@ -226,7 +217,7 @@ for Sm_p in MBL_percentage:
     ##################################### TD ######################################
             
         # Calculate rainflow damage
-            # According to DNV
+            
             D_dnv, n_ss, s_eq                   = RFC_damage(tension, t, k, C, Sm=Sm) 
             damage_matrices['DNV'][j,i]         = D_dnv * prb
             S_matrices['DNV'][j,i]              = s_eq
@@ -257,7 +248,7 @@ for Sm_p in MBL_percentage:
             S_matrices['KWOFIE'][j,i]           = s_eq
          
             
-        # Calculate mean damages and append to corresponding lists
+        # Calculate mean damages
         for key, value in damage_data.items():
             method_list                                     = damage_matrices[f'{key}'][:,i]
             damage_data[f'{key}'][index[i][1],index[i][0]]  = np.mean(method_list)
@@ -282,7 +273,7 @@ for Sm_p in MBL_percentage:
         D_KWOFIE[Sm_p].append(damage_data['KWOFIE'][index[i][1],index[i][0]])
         S_RF_KWOFIE[Sm_p].append(S_data['KWOFIE'][index[i][1],index[i][0]])
         
-        # Copy values from the original dictionary to the new one and normalize
+        # Normalised damage
         for key in damage_data.keys():
             if key != 'DNV':
                 if Sm_p == 0.1:
@@ -423,10 +414,9 @@ Lmin = 1/(D_min*ss)
 
 
 fig = plt.figure(figsize=(18, 15))
-# Define the gridspec layout
+
 gs = gridspec.GridSpec(len(MBL_percentage), 3, figure=fig)
 
-# First column, middle subplot
 ax1 = fig.add_subplot(gs[1, 0])
 ax1.plot(N, Sr, label='DN_DNV', color='#33CCCC')
 ax1.set_xscale('log')
@@ -436,15 +426,13 @@ ax1.set_ylim([0.1, 100])
 ax1.scatter(N_total_DNV, S_total_DNV, label='DNV', color=method_colors['DNV'], 
             marker=method_markers['DNV'])
 
-# Normalize the Energy_ss data
+# Normalise the Energy_ss data
 norm = mcolors.Normalize(vmin=min(Energy_ss), vmax=max(Energy_ss))
 cmap = plt.cm.turbo
 
-# Create the scatter plot with the color mapping
 scatter = plt.scatter(N_data_DNV, S_RF, label='SS contribution', c=Energy_ss, 
                       cmap=cmap, norm=norm, marker='.')
 
-# Add a colorbar for the Wave Energy Flux
 cbar = plt.colorbar(scatter)
 cbar.set_label('Wave Energy Flux [W/m]')
 formatter = plt.FuncFormatter(lambda x, _: "{:.0e}".format(x))
@@ -480,11 +468,9 @@ for key in ['SWT', 'GOODMAN']:
         ax.scatter(N_total[key][MBL_percentage[ii]], S_total[key][MBL_percentage[ii]], label=key, color=method_colors[key], 
                     marker=method_markers[key])      
 
-        # Create the scatter plot with the color mapping
         scatter = ax.scatter(N_data[key][MBL_percentage[ii]], S_equivalent[key][MBL_percentage[ii]], label='SS contribution', c=Energy_ss, 
                               cmap=cmap, norm=norm, marker='.')
 
-        # Add a colorbar for the Wave Energy Flux
         cbar = plt.colorbar(scatter)
         cbar.set_label('Wave Energy Flux [W/m]')
         formatter = plt.FuncFormatter(lambda x, _: "{:.0e}".format(x))
@@ -501,20 +487,17 @@ for key in ['SWT', 'GOODMAN']:
         if ii == 2: ax.set_xlabel('Cycles to failure')
         if i == 1 and (ii == 0 or ii == 2): ax.set_ylabel('Stress range [MPa]')
 
-# Adjust layout to prevent overlap
 plt.tight_layout()
 plt.show()
 
 
 
-# Calculate relative differences for the table
+# Calculate relative lifetime difference
 MBL_percentage = [0.1, 0.2, 0.3]
 methods = ['GOODMAN', 'GERBER', 'SODERBERG', 'SWT', 'MORROW', 'KWOFIE']
 
-# Initialize a dictionary to store the relative differences
 relative_differences = {method: [] for method in methods}
 
-# Compute the relative differences
 for method in methods:
     for mbl in MBL_percentage:
         if mbl in Lifetime[method]:
@@ -523,15 +506,12 @@ for method in methods:
         else:
             relative_differences[method].append(None)
 
-# Create a DataFrame for the table
 table_df = pd.DataFrame(relative_differences, index=[f"{int(mbl * 100)}% MBL" for mbl in MBL_percentage])
 
-# Create a colored table visualization
 fig, ax = plt.subplots(figsize=(10, 5))
 ax.axis('tight')
 ax.axis('off')
 
-# Define colors for cell background based on values
 def cell_color(val):
     if val is None:
         return 'white'
@@ -540,10 +520,8 @@ def cell_color(val):
     else:
         return '#CCFFCC'  # Green for positive values
 
-# Create cell colors based on the DataFrame values
 cell_colors = [[cell_color(val) for val in row] for row in table_df.values]
 
-# Create the table
 table = ax.table(
     cellText=table_df.values,
     rowLabels=table_df.index,
@@ -553,10 +531,8 @@ table = ax.table(
     loc='center'
 )
 
-# Adjust font size
 table.auto_set_font_size(False)
 table.set_fontsize(10)
 
-# Title
 plt.title("Percentage of Lifetime Relative Difference Compared to DNV", fontsize=14)
 plt.show()
